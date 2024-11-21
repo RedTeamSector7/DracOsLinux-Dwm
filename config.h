@@ -1,11 +1,13 @@
 // -------------------------------- Appearance ---------------------------------
-
+#include "patches/gaplessgrid.c"
 // border pixel of windows
-static const unsigned int borderpx  = 1;
+static const unsigned int borderpx  = 3;
 // gaps between windows 
-static const unsigned int gappx = 6;
+static const unsigned int gappx = 12;
 // snap pixel 
-static const unsigned int snap = 32;
+static const unsigned int snap = 10;
+static const unsigned int tagpadding = 13;
+static const unsigned int tagspacing = 5;
 // 0: sloppy systray follows selected monitor, >0: pin systray to monitor X 
 static const unsigned int systraypinning = 0;
 // systray spacing 
@@ -14,15 +16,20 @@ static const unsigned int systrayspacing = 2;
 static const int systraypinningfailfirst = 1;
 // 0 means no systray
 static const int showsystray = 1;
+static const int user_bh = 23;
+/* name & cls of panel win */
 // 0 means no bar 
 static const int showbar = 1;
 // 0 means bottom bar 
 static const int topbar = 1;
+static const int vertpad = 4;       /* vertical padding of bar */
+static const int sidepad = 4; 
+static const char *barlayout = "l";
 
 // ---------------------------------- Fonts ------------------------------------
 
-static const char *fonts[] = { "UbuntuMono Nerd Font:size=14:weight=bold:antialias=true:autohint:true" };
-static const char dmenufont[] = "UbuntuMono Nerd Font:size=12:antialias=true:autohint=true";
+static const char *fonts[] = { "Terminus:size=11:style:normal:antialias=true:autohint:true" };
+static const char dmenufont[] = "Iosevka Nerd Font Medium:size=13:antialias=true:autohint=true";
 
 // ---------------------------------- Colors -----------------------------------
 
@@ -34,30 +41,30 @@ struct Theme {
 };
 
 static const struct Theme material = {
-    .inactive = "#4c566a",
-    .active = "#ffffff",
+    .inactive = "grey",
+    .active = "grey",
     .bg = "#0f101a",
-    .focus = "#a151d3"
+    .focus = "#0f101a"
 };
 
 static const struct Theme onedark = {
     .inactive = "#4c566a",
-    .active = "#ffffff",
-    .bg = "#1e2127",
+    .active = "#0f101a",
+    .bg = "#0f101a",
     .focus = "#E06C75"
 };
 
 static const struct Theme nord = {
     .inactive = "#4c566a",
-    .active = "#ffffff",
-    .bg = "#2e3440",
+    .active = "#0f101a",
+    .bg = "#0f101a",
     .focus = "#81a1c1"
 };
 
 static const struct Theme monokai_pro = {
-    .inactive = "#727072",
-    .active = "#2d2a2e",
-    .bg = "#2d2a2e",
+    .inactive = "#0f101a",
+    .active = "#0f101a",
+    .bg = "#0f101a",
     .focus = "#a9dc76"
 }; 
 
@@ -78,9 +85,11 @@ static const char *colors[][3] = {
     { monokai_pro.active, monokai_pro.focus,  monokai_pro.focus },
 };
 
+
+
 // -------------------------------- Workspaces ---------------------------------
 
-static const char *tags[] = { " ", " ", " ", " ", " ", "  ", " ", " ", " " };
+static const char *tags[] = { "PENTEST", "DEVEL", "MISC", "MAIN" };
 
 static const Rule rules[] = {
     /* xprop(1):
@@ -90,27 +99,23 @@ static const Rule rules[] = {
 
     // class      instance    title       tags mask     isfloating   monitor 
     { "Gimp",     NULL,       NULL,       0,            1,           -1 },
-    { "Firefox",  NULL,       NULL,       1 << 8,       0,           -1 },
 };
 
 // ---------------------------------- Layouts ----------------------------------
 
-static const float mfact = 0.50;  // factor of master area size [0.05..0.95] 
+static const float mfact = 0.55;  // factor of master area size [0.05..0.95] 
 static const int nmaster = 1;     // number of clients in master area 
-static const int resizehints = 1; // 1 means respect size hints in tiled resizals 
+static const int resizehints = 0; // 1 means respect size hints in tiled resizals 
 
 #include "layouts.c"
 static const Layout layouts[] = {
-    // symbol   arrange function
-    { "[]",     tile }, // first entry is default 
-    { "[F]",    NULL }, // no layout function means floating behavior 
-    { "[M]",    monocle },
-    { "[C]",    tcl },
-    { "[G]",    grid },
-    { NULL,     NULL },
+	/* symbol     arrange function */
+	{ "[]",      tile },    /* first entry is default */
+	{ "[F]",      NULL },    /* no layout function means floating behavior */
+	{ "[M]",      gaplessgrid },
 };
-
 // -------------------------------- Keybindings --------------------------------
+
 
 #define MODKEY Mod4Mask
 
@@ -125,7 +130,7 @@ static const Layout layouts[] = {
 
 // Commands
 static char dmenumon[2] = "0";
-static const char *termcmd[]  = { "alacritty", NULL };
+static const char *termcmd[]  = { "urxvt", NULL };
 static const char *dmenucmd[] = {
     "dmenu_run", "-m", dmenumon,
     "-fn", dmenufont,
@@ -164,7 +169,6 @@ static Key keys[] = {
     // Increase - decrease gaps
     { MODKEY, XK_g, setgaps, {.i = -1 } },
     { MODKEY|ShiftMask, XK_g, setgaps, {.i = +1 } },
-
     // Focus next - prev monitor
     { MODKEY, XK_period, focusmon, {.i = +1 } },
     { MODKEY, XK_comma, focusmon, {.i = -1 } },
@@ -199,24 +203,38 @@ static Key keys[] = {
     TAGKEYS(XK_9, 8)
 
     // ------------------- Apps --------------------
-
+    //{ MODKEY|ShiftMask, XK_c, spawn, {.v = termcmd } }, 
+    { MODKEY, XK_a, spawn, SHCMD("urxvt -bg black -fg green") },
+    { MODKEY, XK_b, spawn, SHCMD("urxvt -bg black -fg yellow") },
+    { MODKEY, XK_c, spawn, SHCMD("urxvt -bg black -fg red") },
+    { MODKEY, XK_d, spawn, SHCMD("urxvt -bg black -fg white") },
     // dmenu
-    { MODKEY|ShiftMask, XK_Return, spawn, {.v = dmenucmd } },
+    //{ MODKEY, XK_r, spawn, {.v = dmenucmd } },
 
     // rofi
-    { MODKEY, XK_m, spawn, SHCMD("rofi -show drun") },
+    //{ MODKEY, XK_m, spawn, SHCMD("rofi -modi drun,run -show drun -show-icons") },
+    { MODKEY, XK_m, spawn, SHCMD("blackarch") },
+
+    { MODKEY, XK_r, spawn, SHCMD("dmenu_run -b -sb grey -sf black  -p 'BlackarchMenu' -nb '#0f101a'  -fn 'Terminus-12'") },
+    // { MODKEY, XK_r, spawn, SHCMD("dmenu_run -b -sb grey -sf black  -p 'BlackarchMenu'  -fn 'JILilliwaup-12'") },
+
+
+    // blackarch-menu
+    //{ MODKEY, XK_m, spawn, SHCMD("dmenu_launch") },    
 
     // Window nav (rofi)
-    { MODKEY|ShiftMask, XK_m, spawn, SHCMD("rofi -show") },
+    //{ MODKEY|ShiftMask, XK_m, spawn, SHCMD("rofi -show") },
 
     // Terminal
-    { MODKEY, XK_Return, spawn, SHCMD("alacritty") },
+   // { MODKEY, XK_Return, spawn, SHCMD("urxvt") },
 
     // File explorer
-    { MODKEY, XK_e, spawn, SHCMD("pcmanfm") },
+    { MODKEY, XK_e, spawn, SHCMD("lfm") },
 
     // Browser
-    { MODKEY, XK_b, spawn, SHCMD("firefox") },
+    { MODKEY, XK_f, spawn, SHCMD("firefox") },
+    
+    { MODKEY, XK_v, spawn, SHCMD("virtualbox") },
 
     // Redshift
     { MODKEY, XK_r, spawn, SHCMD("redshift -O 2400") },
