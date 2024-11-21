@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+while true; do
+
+        date '+| %A | %Y:%d:%B | %T |' > /tmp/CurTime.tmp
+
+        sleep 1s
+done &
+while true; do
+
+        LOCALTIME=$(< /tmp/CurTime.tmp)
+        MEM=$(free -h | awk '/^Mem:/ {print $3}')
+        CPU=$(top -bn1 | grep load | awk '{printf "%.2f\n", $(NF-2)}')
+        NET=$(nmcli dev wifi | grep -E '^[*]' | awk '/*/ {print $8}')
+        TOTALDOWN=$(ifconfig wlan1| grep "RX packets" | awk {'print $6 $7'})
+        TOTALUP=$(ifconfig wlan1| grep "TX packets" | awk {'print $6 $7'})
+        xsetroot -name "$LOCALTIME | Mem:$MEM | CPU:$CPU |  Net: $NET up: $TOTALUP down: $TOTALDOWN |"
+
+        sleep 1s
+done &
